@@ -16,7 +16,6 @@ interface Styles {
 }
 
 export default function Index() {
-  const [isRecording, setIsRecording] = useState<boolean>(false);
   const router = useRouter();
   const [recording, setRecording] = useState<Audio.Recording>();
   const [permissionResponse, requestPermission] = Audio.usePermissions();
@@ -53,6 +52,7 @@ export default function Index() {
       }
     );
     const uri = recording.getURI();
+    router.push('/record')
     console.log('Recording stopped and stored at', uri);
   }
 
@@ -66,7 +66,7 @@ export default function Index() {
     <View style={styles.container}>
       <View style={styles.content}>
         <TouchableOpacity
-          style={[styles.recordButton, isRecording && styles.recording]}
+          style={[styles.recordButton, recording && styles.recording]}
           onPress={handleRecord}
         >
           <Ionicons
