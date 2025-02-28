@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -11,7 +11,12 @@ import {
   PanResponderGestureState,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withTiming,
+  withSpring 
+} from "react-native-reanimated";
 import { Audio } from "expo-av";
 
 const { width } = Dimensions.get("window");
@@ -47,9 +52,22 @@ const PlayBackBar: React.FC<PlayBackBarProps> = ({
   const [progressBarWidth, setProgressBarWidth] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   
+  // Animation values for the thumb
+  const thumbScale = useSharedValue(1);
+  const thumbOpacity = useSharedValue(0.9);
+  
   const progressStyle = useAnimatedStyle(() => {
     return {
       width: `${progressAnimation.value * 100}%`,
+    };
+  });
+  
+  // Animated style for the thumb
+  const thumbStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: thumbScale.value }],
+      opacity: thumbOpacity.value,
+      left: `${progressAnimation.value * 100}%`
     };
   });
 
@@ -60,6 +78,10 @@ const PlayBackBar: React.FC<PlayBackBarProps> = ({
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
         setIsDragging(true);
+        // Animate the thumb to show it's being dragged
+        thumbScale.value = withSpring(1.3);
+        thumbOpacity.value = withTiming(1);
+        
         // Pause playback while dragging
         if (isPlaying) {
           pausePlayback();
@@ -67,27 +89,40 @@ const PlayBackBar: React.FC<PlayBackBarProps> = ({
       },
       onPanResponderMove: (event: GestureResponderEvent, gestureState: PanResponderGestureState) => {
         if (progressBarWidth <= 0) return;
+        console.log('cehcking--->')
         
-        // Calculate new position based on drag
-        const newPosition = Math.max(0, Math.min(gestureState.moveX - 50, progressBarWidth));
-        const positionRatio = newPosition / progressBarWidth;
-        const newTimePosition = positionRatio * totalDuration;
-        
-        // Update UI immediately for better responsiveness
-        setCurrentPosition(newTimePosition);
-        progressAnimation.value = positionRatio;
+        // Get the absolute position of the progress bar
+        progressBarRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          // Calculate new position based on drag, relative to the progress bar
+          const touchX = event.nativeEvent.pageX;
+          const relativeX = Math.max(0, Math.min(touchX - pageX, width));
+          const positionRatio = relativeX / width;
+          const newTimePosition = positionRatio * totalDuration;
+          
+          // Update UI immediately for better responsiveness
+          setCurrentPosition(newTimePosition);
+          progressAnimation.value = positionRatio;
+        });
       },
       onPanResponderRelease: async (event, gestureState) => {
         if (progressBarWidth <= 0 || !seekToPosition) return;
         
-        // Calculate final position
-        const newPosition = Math.max(0, Math.min(gestureState.moveX - 50, progressBarWidth));
-        const positionRatio = newPosition / progressBarWidth;
-        const newTimePosition = positionRatio * totalDuration;
+        // Reset the thumb animation
+        thumbScale.value = withSpring(1);
+        thumbOpacity.value = withTiming(0.9);
         
-        // Seek to the new position
-        await seekToPosition(newTimePosition);
-        setIsDragging(false);
+        // Get the absolute position of the progress bar
+        progressBarRef.current?.measure((x, y, width, height, pageX, pageY) => {
+          // Calculate final position
+          const touchX = event.nativeEvent.pageX;
+          const relativeX = Math.max(0, Math.min(touchX - pageX, width));
+          const positionRatio = relativeX / width;
+          const newTimePosition = positionRatio * totalDuration;
+          
+          // Seek to the new position
+          seekToPosition(newTimePosition);
+          setIsDragging(false);
+        });
       },
     })
   ).current;
@@ -164,10 +199,13 @@ const PlayBackBar: React.FC<PlayBackBarProps> = ({
           <Animated.View 
             style={[
               styles.sliderThumb, 
-              { left: `${progressAnimation.value * 100}%` }
+              thumbStyle
             ]} 
+            hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             {...panResponder.panHandlers}
-          />
+          >
+            <View style={styles.thumbDragIcon} />
+          </Animated.View>
         </View>
         <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
       </View>
@@ -242,20 +280,28 @@ const styles = StyleSheet.create({
   },
   sliderThumb: {
     position: 'absolute',
-    width: 18,
-    height: 18,
+    width: 24,
+    height: 24,
     backgroundColor: '#007AFF',
-    borderRadius: 9,
-    top: -6,
-    marginLeft: -9,
+    borderRadius: 12,
+    top: -9,
+    marginLeft: -12,
     borderWidth: 2,
     borderColor: '#fff',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
     zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbDragIcon: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   controlsContainer: {
     flexDirection: "row",

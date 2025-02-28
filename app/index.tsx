@@ -272,13 +272,13 @@ export default function Index() {
 
       setRecording(null);
       setIsRecordingState(false);
-      router.push("/record");
-
+      setRecordingTime(0);
       // Stop the timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      router.push("/record");
     } catch (error) {
       console.error("Error stopping recording:", error);
     }
@@ -432,7 +432,7 @@ const styles = StyleSheet.create<Styles>({
     borderRadius: 10,
     marginVertical: 20,
     minHeight: 100,
-    maxHeight: 500,
+    // maxHeight: 500,
   },
   translationText: {
     fontSize: 16,
