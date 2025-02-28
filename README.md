@@ -1,50 +1,134 @@
-# Welcome to your Expo app 👋
+# Multilingual Record App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native mobile application for recording, transcribing, and playing back multilingual audio segments with continuous playback functionality.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Audio Recording**: Record audio in segments of approximately 2 seconds each
+- **Real-time Transcription**: Transcribe audio segments using OpenAI's transcription service
+- **Continuous Playback**: Seamlessly play back all recorded segments with smooth transitions
+- **Interactive Timeline**: Navigate through recordings with a draggable progress bar
+- **Segment Highlighting**: Visual indication of the currently playing segment
+- **Multilingual Support**: Works with multiple languages for transcription
 
+## Prerequisites
+
+- Node.js (v14 or newer)
+- npm or yarn
+- Expo CLI (`npm install -g expo-cli`)
+- OpenAI API Key (for transcription functionality)
+
+## Environment Setup
+
+1. Create a `.env` file in the root directory with the following content:
+   ```
+   EXPO_PUBLIC_OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+2. Replace `your_openai_api_key_here` with your actual OpenAI API key.
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/multilingual-record.git
+   cd multilingual-record
+   ```
+
+2. Install dependencies:
    ```bash
    npm install
+   # or
+   yarn install
    ```
 
-2. Start the app
+## Running the App
 
+### Development Mode
+
+1. Start the Expo development server:
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+2. Use one of the following methods to run the app:
+   - Scan the QR code with the Expo Go app on your mobile device
+   - Press `a` to open on an Android emulator
+   - Press `i` to open on an iOS simulator
+   - Press `w` to open in a web browser (note: some features may not work in web mode)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Building for Production
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+#### For Android
 
-## Get a fresh project
+1. Build the Android APK:
+   ```bash
+   expo build:android -t apk
+   ```
 
-When you're ready, run:
+2. Or build an Android App Bundle:
+   ```bash
+   expo build:android -t app-bundle
+   ```
+
+#### For iOS
 
 ```bash
-npm run reset-project
+expo build:ios
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Usage Instructions
 
-## Learn more
+1. **Home Screen**:
+   - Tap the microphone button to start recording
+   - The timer at the top shows your recording duration
+   - Real-time transcription appears as you speak
 
-To learn more about developing your project with Expo, look at the following resources:
+2. **Recording Screen**:
+   - View all recorded segments with their transcriptions
+   - Use the playback bar to control audio playback
+   - Drag the slider to navigate to specific parts of the recording
+   - Tap on any segment to jump to that point in the recording
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+3. **Playback Controls**:
+   - Play/Pause: Control audio playback
+   - Progress Bar: Shows current position in the overall recording
+   - Time Display: Shows current position and total duration
 
-## Join the community
+## Project Structure
 
-Join our community of developers creating universal apps.
+- `app/`: Main application screens
+  - `index.tsx`: Home/recording screen
+  - `record.tsx`: Playback and transcription review screen
+- `src/`: Source code
+  - `components/`: Reusable UI components
+  - `services/`: API services (OpenAI integration)
+  - `store/`: State management with Zustand
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Dependencies
+
+- React Native
+- Expo
+- Expo Audio
+- react-native-reanimated
+- Zustand (for state management)
+- OpenAI API (for transcription)
+
+## Troubleshooting
+
+- **Audio Permission Issues**: Ensure your device has granted microphone permissions to the app
+- **Transcription Not Working**: Verify your OpenAI API key is correct in the `.env` file
+- **Playback Issues**: Make sure audio files are properly saved and accessible
+
+## License
+
+MIT
+
+## Contributors
+
+- Edward Ha
+- Other Contributors
+
+---
+
+For any questions or support, please open an issue on the GitHub repository.

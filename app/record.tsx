@@ -11,6 +11,7 @@ import {
   Alert,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Audio } from "expo-av";
 import Animated, {
@@ -18,274 +19,339 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { appStore, useAppStore } from "../src/store/appStore";
+import PlayBackBar from "../src/components/record/PlayBackBar";
+
+const { width } = Dimensions.get("window");
 
 interface Styles {
   container: ViewStyle;
   content: ViewStyle;
-  title: TextStyle;
-  recordButton: ViewStyle;
-  recording: ViewStyle;
-  instructions: TextStyle;
-  topBar: ViewStyle;
-  progressBar: ViewStyle;
-  progressIndicator: ViewStyle;
-  timeText: TextStyle;
-  timeContainer: ViewStyle;
-  translationContainer: ViewStyle;
-  translationItem: ViewStyle;
-  translationText: TextStyle;
-  translationTimestamp: TextStyle;
-  controlsContainer: ViewStyle;
-  controlButton: ViewStyle;
-  activeTranslation: ViewStyle;
+  segmentItem: ViewStyle;
+  activeSegment: ViewStyle;
+  segmentHeader: ViewStyle;
+  timestampText: TextStyle;
+  transcriptionText: TextStyle;
   goToMainButton: ViewStyle;
   goToMainText: TextStyle;
 }
-
-const { width } = Dimensions.get("window");
-
-// Types for our data
-interface Translation {
-  text: string;
-  timestamp: number; // in seconds
-  language: string;
-}
-
-interface RecordingData {
-  uri: string;
-  duration: number; // in seconds
-  translations: Translation[];
-}
-
-// Mock data for testing - remove in production
-const mockRecording: RecordingData = {
-  uri: "file://example.m4a",
-  duration: 60, // 60 seconds
-  translations: [
-    {
-      text: "[00:00] Hello, this lecture is about 日本語の勉強.",
-      timestamp: 0,
-      language: "en-ja",
-    },
-    {
-      text: "[00:05] Today, we'll explore 文化の違い.",
-      timestamp: 5,
-      language: "en-ja",
-    },
-    {
-      text: "[00:10] In Hindi, we say भारतीय भाषा कैसे बोलें.",
-      timestamp: 10,
-      language: "hi",
-    },
-    {
-      text: "[00:15] Let's also learn 敬語 and cultural nuances for better communication.",
-      timestamp: 15,
-      language: "en-ja",
-    },
-    {
-      text: "[00:20] For example, in Hindi, भारतीय is similar to 日本人 in Japanese.",
-      timestamp: 20,
-      language: "en-ja-hi",
-    },
-    {
-      text: "[00:25] Ready? 始めましょう! 🍜",
-      timestamp: 25,
-      language: "en-ja",
-    },
-    {
-      text: "[00:00] Hello, this lecture is about 日本語の勉強.",
-      timestamp: 0,
-      language: "en-ja",
-    },
-    {
-      text: "[00:05] Today, we'll explore 文化の違い.",
-      timestamp: 5,
-      language: "en-ja",
-    },
-    {
-      text: "[00:10] In Hindi, we say भारतीय भाषा कैसे बोलें.",
-      timestamp: 10,
-      language: "hi",
-    },
-    {
-      text: "[00:15] Let's also learn 敬語 and cultural nuances for better communication.",
-      timestamp: 15,
-      language: "en-ja",
-    },
-    {
-      text: "[00:20] For example, in Hindi, भारतीय is similar to 日本人 in Japanese.",
-      timestamp: 20,
-      language: "en-ja-hi",
-    },
-    {
-      text: "[00:25] Ready? 始めましょう! 🍜",
-      timestamp: 25,
-      language: "en-ja",
-    },
-    {
-      text: "[00:00] Hello, this lecture is about 日本語の勉強.",
-      timestamp: 0,
-      language: "en-ja",
-    },
-    {
-      text: "[00:05] Today, we'll explore 文化の違い.",
-      timestamp: 5,
-      language: "en-ja",
-    },
-    {
-      text: "[00:10] In Hindi, we say भारतीय भाषा कैसे बोलें.",
-      timestamp: 10,
-      language: "hi",
-    },
-    {
-      text: "[00:15] Let's also learn 敬語 and cultural nuances for better communication.",
-      timestamp: 15,
-      language: "en-ja",
-    },
-    {
-      text: "[00:20] For example, in Hindi, भारतीय is similar to 日本人 in Japanese.",
-      timestamp: 20,
-      language: "en-ja-hi",
-    },
-    {
-      text: "[00:25] Ready? 始めましょう! 🍜",
-      timestamp: 25,
-      language: "en-ja",
-    },
-    {
-      text: "[00:00] Hello, this lecture is about 日本語の勉強.",
-      timestamp: 0,
-      language: "en-ja",
-    },
-    {
-      text: "[00:05] Today, we'll explore 文化の違い.",
-      timestamp: 5,
-      language: "en-ja",
-    },
-    {
-      text: "[00:10] In Hindi, we say भारतीय भाषा कैसे बोलें.",
-      timestamp: 10,
-      language: "hi",
-    },
-    {
-      text: "[00:15] Let's also learn 敬語 and cultural nuances for better communication.",
-      timestamp: 15,
-      language: "en-ja",
-    },
-    {
-      text: "[00:20] For example, in Hindi, भारतीय is similar to 日本人 in Japanese.",
-      timestamp: 20,
-      language: "en-ja-hi",
-    },
-    {
-      text: "[00:25] Ready? 始めましょう! 🍜",
-      timestamp: 25,
-      language: "en-ja",
-    },
-  ],
-};
 
 export default function Index() {
   const router = useRouter();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [activeSegmentIndex, setActiveSegmentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-
-  // In a real app, you would get this from the store
-  const [recording, setRecording] = useState<RecordingData | null>(
-    mockRecording
+  const positionUpdateInterval = useRef<NodeJS.Timeout | null>(null);
+  const soundsRef = useRef<{ [key: string]: Audio.Sound }>({});
+  const clearRecordingSegments = useAppStore(
+    (state) => (state as any).clearRecordingSegments
   );
 
-  const progressAnimation = useSharedValue(0);
+  // Get recording segments from app store
+  const recordingSegments = useAppStore((state) => state.recordingSegments);
 
+  const progressAnimation = useSharedValue(0);
+  // console.log('progressAnimation', activeSegmentIndex, currentPosition)
+
+  // Preload all audio files
   useEffect(() => {
-    // Load the recording when component mounts
-    if (recording) {
-      loadSound(recording.uri);
-      setDuration(recording.duration);
-    }
+    const preloadSounds = async () => {
+      if (recordingSegments.length === 0) return;
+
+      setIsLoading(true);
+      console.log("Starting to preload all sounds...");
+
+      try {
+        // Clean up previous sounds
+        for (const key in soundsRef.current) {
+          await soundsRef.current[key].unloadAsync();
+        }
+        soundsRef.current = {};
+
+        if (sound) {
+          await sound.unloadAsync();
+          setSound(null);
+        }
+
+        // Calculate total duration
+        const estimatedDuration = recordingSegments.length * 2;
+        setTotalDuration(estimatedDuration);
+
+        // Preload all sounds
+        for (let i = 0; i < recordingSegments.length; i++) {
+          const segment = recordingSegments[i];
+          // console.log(`Preloading sound ${i + 1}/${recordingSegments.length}: ${segment.uri}`);
+          // console.log('i---->', i)
+          try {
+            const { sound: newSound } = await Audio.Sound.createAsync(
+              { uri: segment.uri },
+              { shouldPlay: false },
+              (status) => {
+                // console.log(`Sound ${i} status update:`, status);
+              }
+            );
+
+            // console.log('chekcing--->', i)
+
+            // Wait for sound to be loaded
+            await new Promise<void>((resolve) => {
+              console.log("waiting for the sound to be loaded");
+              const checkLoaded = async () => {
+                const status = await newSound.getStatusAsync();
+                if (status.isLoaded) {
+                  resolve();
+                  console.log(
+                    "the sound is loaded, play the next sound please"
+                  );
+                } else {
+                  setTimeout(checkLoaded, 100);
+                }
+              };
+              checkLoaded();
+            });
+            console.log("go thought the loading sound step");
+
+            soundsRef.current[segment.id] = newSound;
+          } catch (error) {
+            console.log("error log--->", error);
+            console.error(`Error preloading sound ${i}:`, error);
+          }
+        }
+
+        // Set the first sound as the active one
+        if (
+          recordingSegments.length > 0 &&
+          soundsRef.current[recordingSegments[0].id]
+        ) {
+          setSound(soundsRef.current[recordingSegments[0].id]);
+        }
+
+        console.log("All sounds preloaded successfully");
+      } catch (error) {
+        console.error("Error preloading sounds:", error);
+        Alert.alert("Error", "Failed to load audio files");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    preloadSounds();
 
     return () => {
       // Cleanup when component unmounts
-      if (sound) {
-        sound.unloadAsync();
+      const cleanupSounds = async () => {
+        for (const key in soundsRef.current) {
+          await soundsRef.current[key].unloadAsync();
+        }
+        soundsRef.current = {};
+
+        if (sound) {
+          await sound.unloadAsync();
+        }
+      };
+
+      cleanupSounds();
+
+      if (positionUpdateInterval.current) {
+        clearInterval(positionUpdateInterval.current);
       }
     };
-  }, [recording]);
+  }, [recordingSegments]);
 
-  useEffect(() => {
-    // Update progress bar and scroll to current translation
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        if (sound) {
-          sound.getStatusAsync().then((status) => {
-            if (status.isLoaded) {
-              const position = status.positionMillis / 1000; // Convert to seconds
-              setCurrentPosition(position);
-              progressAnimation.value = position / duration;
-
-              // Find the current translation to scroll to
-              const currentTranslationIndex =
-                recording?.translations.findIndex((t, i, arr) => {
-                  if (i === arr.length - 1) return position <= t.timestamp;
-                  return (
-                    position >= t.timestamp && position < arr[i + 1].timestamp
-                  );
-                }) || 0;
-
-              if (currentTranslationIndex >= 0 && scrollViewRef.current) {
-                scrollViewRef.current.scrollTo({
-                  y: currentTranslationIndex * 70, // Approximate height of each translation item
-                  animated: true,
-                });
-              }
-            }
-          });
-        }
-      }, 100);
-
-      return () => clearInterval(interval);
+  // Manual implementation of continuous playback
+  const playAllSegments = async () => {
+    if (isLoading || recordingSegments.length === 0) {
+      console.log("Cannot play: loading or no segments");
+      return;
     }
-  }, [isPlaying, sound, duration]);
 
-  const loadSound = async (uri: string) => {
     try {
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      setSound(sound);
-    } catch (error) {
-      console.error("Error loading sound", error);
-      // Alert.alert('Error', 'Failed to load recording');
-    }
-  };
+      // Start with the active segment
+      const currentSegmentId = recordingSegments[activeSegmentIndex].id;
+      const currentSound = soundsRef.current[currentSegmentId];
+      console.log("current sound--->", currentSound);
 
-  const playSound = async () => {
-    if (sound) {
-      await sound.playAsync();
+      if (!currentSound) {
+        console.error("Current sound not found in preloaded sounds");
+        return;
+      }
+
+      setSound(currentSound);
+
+      // Start playing the current segment
+      await currentSound.setPositionAsync(0);
+      await currentSound.playAsync();
       setIsPlaying(true);
+
+      // Set up an interval to track position and handle segment transitions
+      if (positionUpdateInterval.current) {
+        clearInterval(positionUpdateInterval.current);
+      }
+
+      let currentSegmentIndex = activeSegmentIndex;
+      let overallPosition = currentSegmentIndex * 2; // Start from the current segment
+      const segmentDuration = 2; // Estimated duration per segment in seconds
+
+      positionUpdateInterval.current = setInterval(async () => {
+        try {
+          const currentSegmentId = recordingSegments[currentSegmentIndex].id;
+          const currentSound = soundsRef.current[currentSegmentId];
+
+          if (!currentSound) {
+            console.error("Sound not found in interval");
+            return;
+          }
+
+          const status = await currentSound.getStatusAsync();
+
+          if (!status.isLoaded) {
+            console.log("Sound not loaded in interval");
+            return;
+          }
+
+          // Get current position within the current segment
+          const segmentPosition = status.positionMillis / 1000;
+
+          // Calculate overall position
+          overallPosition =
+            currentSegmentIndex * segmentDuration + segmentPosition;
+          setCurrentPosition(overallPosition);
+          progressAnimation.value = overallPosition / totalDuration;
+
+          // Determine which segment should be active
+          const activeIndex = Math.min(
+            Math.floor(overallPosition / segmentDuration),
+            recordingSegments.length - 1
+          );
+
+          if (activeIndex !== activeSegmentIndex) {
+            setActiveSegmentIndex(activeIndex);
+
+            // Scroll to active segment
+            if (scrollViewRef.current) {
+              scrollViewRef.current.scrollTo({
+                y: activeIndex * 60, // Approximate height of each segment
+                animated: true,
+              });
+            }
+          }
+
+          console.log(
+            "condition to play new segment",
+            status.didJustFinish || segmentPosition >= segmentDuration
+          );
+          console.log("status--->", status);
+          console.log("segment positon :", segmentPosition, segmentDuration);
+          console.log(
+            "current segment index",
+            currentSegmentIndex,
+            recordingSegments.length
+          );
+
+          if (currentSegmentIndex == recordingSegments.length - 1) {
+            clearInterval(positionUpdateInterval.current!);
+            setIsPlaying(false);
+            setCurrentPosition(0);
+            progressAnimation.value = 0;
+            setActiveSegmentIndex(0);
+            await currentSound.stopAsync();
+            await currentSound.setPositionAsync(0);
+            return;
+          }
+
+          // Check if we need to move to the next segment
+          if (status.didJustFinish || segmentPosition >= segmentDuration) {
+            currentSegmentIndex++;
+
+            // Stop the current sound
+            await currentSound.stopAsync();
+            await currentSound.setPositionAsync(0);
+
+            // Get the next sound from our preloaded sounds
+            const nextSegmentId = recordingSegments[currentSegmentIndex].id;
+            const nextSound = soundsRef.current[nextSegmentId];
+
+            if (!nextSound) {
+              console.error("Next sound not found in preloaded sounds");
+              return;
+            }
+
+            setSound(nextSound);
+            await nextSound.setPositionAsync(0);
+            await nextSound.playAsync();
+          }
+        } catch (intervalError) {
+          console.error("Error in playback interval:", intervalError);
+        }
+      }, 200);
+    } catch (error) {
+      console.error("Error playing segments:", error);
     }
   };
 
-  const pauseSound = async () => {
-    if (sound) {
-      await sound.pauseAsync();
-      setIsPlaying(false);
-    }
-  };
+  const seekToPosition = async (position: number) => {
+    if (isLoading || recordingSegments.length === 0) return;
 
-  const seekSound = async (position: number) => {
-    if (sound) {
-      await sound.setPositionAsync(position * 1000); // Convert to milliseconds
-      setCurrentPosition(position);
-    }
-  };
+    try {
+      // Ensure position is within bounds
+      const clampedPosition = Math.max(0, Math.min(position, totalDuration));
 
-  const handleProgressBarPress = (event: any) => {
-    const { locationX } = event.nativeEvent;
-    const position = (locationX / width) * duration;
-    progressAnimation.value = position / duration;
-    seekSound(position);
+      // Update UI immediately for better responsiveness
+      setCurrentPosition(clampedPosition);
+      progressAnimation.value = clampedPosition / totalDuration;
+
+      // Calculate which segment this position corresponds to
+      const segmentDuration = 2; // seconds
+      const targetSegmentIndex = Math.min(
+        Math.floor(clampedPosition / segmentDuration),
+        recordingSegments.length - 1
+      );
+
+      setActiveSegmentIndex(targetSegmentIndex);
+
+      // Stop current playback and interval
+      if (positionUpdateInterval.current) {
+        clearInterval(positionUpdateInterval.current);
+        positionUpdateInterval.current = null;
+      }
+
+      // Pause current sound if playing
+      const wasPlaying = isPlaying;
+      if (isPlaying) {
+        setIsPlaying(false);
+        if (sound) {
+          await sound.pauseAsync();
+        }
+      }
+
+      // Get the target sound from our preloaded sounds
+      const targetSegmentId = recordingSegments[targetSegmentIndex].id;
+      const targetSound = soundsRef.current[targetSegmentId];
+
+      if (!targetSound) {
+        console.error("Target sound not found in preloaded sounds");
+        return;
+      }
+
+      setSound(targetSound);
+
+      // Calculate position within the segment
+      const segmentPosition = clampedPosition % segmentDuration;
+      await targetSound.setPositionAsync(segmentPosition * 1000);
+
+      // If we were playing, start playback again
+      if (wasPlaying) {
+        await targetSound.playAsync();
+        setIsPlaying(true);
+        playAllSegments(); // Restart the continuous playback from this position
+      }
+    } catch (error) {
+      console.error("Error seeking:", error);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -302,56 +368,51 @@ export default function Index() {
     };
   });
 
-  const isTranslationActive = (
-    timestamp: number,
-    index: number,
-    translations: Translation[]
-  ) => {
-    if (index === translations.length - 1) {
-      return currentPosition >= timestamp;
-    }
-    return (
-      currentPosition >= timestamp &&
-      currentPosition < translations[index + 1].timestamp
-    );
-  };
-
   const goToMain = () => {
     router.back();
+    clearRecordingSegments();
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.topBar}>
-        <View style={styles.timeContainer}>
-          <Text style={styles.timeText}>{formatTime(currentPosition)}</Text>
-          <View style={styles.progressBar}>
-            <Animated.View style={[styles.progressIndicator, progressStyle]} />
-          </View>
-          <Text style={styles.timeText}>{formatTime(duration)}</Text>
-        </View>
-      </View>
+        {/* Playback Bar */}
+        <PlayBackBar
+          currentPosition={currentPosition}
+          totalDuration={totalDuration}
+          isPlaying={isPlaying}
+          isLoading={isLoading}
+          progressAnimation={progressAnimation}
+          sound={sound}
+          setIsPlaying={setIsPlaying}
+          setCurrentPosition={setCurrentPosition}
+          positionUpdateInterval={positionUpdateInterval}
+          seekToPosition={(position) => seekToPosition(position)}
+          playAllSegments={playAllSegments}
+        />
 
-        {/* Translation List */}
+        {/* Recording Segments List */}
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={{ paddingBottom: 20, marginTop: 10 }}
+          contentContainerStyle={{ paddingBottom: 20, marginTop: 20 }}
         >
-          {recording?.translations.map((translation, index) => (
+          {recordingSegments.map((segment, index) => (
             <TouchableOpacity
-              key={index}
+              key={segment.id || index}
               style={[
-                styles.translationItem,
-                isTranslationActive(
-                  translation.timestamp,
-                  index,
-                  recording.translations
-                ) && styles.activeTranslation,
+                styles.segmentItem,
+                activeSegmentIndex === index && styles.activeSegment,
               ]}
-              onPress={() => seekSound(translation.timestamp)}
+              onPress={() => seekToPosition(index * 2)}
             >
-              <Text style={styles.translationText}>{translation.text}</Text>
+              <View style={styles.segmentHeader}>
+                <Text style={styles.timestampText}>
+                  {formatTime(index * 2)}
+                </Text>
+                <Text style={styles.transcriptionText}>
+                  {segment.transcription || "No transcription available"}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -366,109 +427,49 @@ export default function Index() {
 const styles = StyleSheet.create<Styles>({
   container: {
     flex: 1,
-    paddingTop: 50,
-    paddingBottom: 40,
+    backgroundColor: "#fff",
+    padding: 20,
   },
   content: {
     flex: 1,
-    padding: 15,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 40,
-  },
-  recordButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 20,
-  },
-  recording: {
-    backgroundColor: "#FF3B30",
-  },
-  instructions: {
-    fontSize: 16,
-    color: "#666",
-  },
-  topBar: {
-    height: 60,
-    padding: 10,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    justifyContent: "center",
-  },
-  timeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  progressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 2,
-    marginHorizontal: 10,
-    overflow: "hidden",
-  },
-  progressIndicator: {
-    height: "100%",
-    backgroundColor: "#007AFF",
-    borderRadius: 2,
-  },
-  timeText: {
-    fontSize: 12,
-    color: "#666",
-    width: 40,
-  },
-  translationContainer: {
-    flex: 1,
-  },
-  translationItem: {
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
+  segmentItem: {
     backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "transparent",
   },
-  activeTranslation: {
-    backgroundColor: "#f0f8ff",
-    borderWidth: 1,
-    borderColor: "#007AFF",
+  activeSegment: {
+    backgroundColor: "#e6f7ff",
+    borderLeftColor: "#007AFF",
   },
-  translationText: {
-    fontSize: 14,
-    lineHeight: 20,
+  segmentHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    gap: 10,
   },
-  translationTimestamp: {
+  timestampText: {
     fontSize: 12,
     color: "#666",
-    marginTop: 4,
   },
-  controlsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-  },
-  controlButton: {
-    padding: 10,
+  transcriptionText: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
   },
   goToMainButton: {
-    marginTop: 0,
-    padding: 12,
-    backgroundColor: "#f0f0f0",
-    marginHorizontal: 20,
-    alignItems: "center",
+    backgroundColor: "#007AFF",
+    padding: 15,
     borderRadius: 8,
+    alignItems: "center",
+    marginTop: 0,
+    marginBottom: 10, 
   },
   goToMainText: {
-    fontSize: 14,
-    color: "#007AFF",
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
