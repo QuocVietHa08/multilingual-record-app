@@ -3,9 +3,7 @@
 A React Native mobile application for recording, transcribing, and playing back multilingual audio segments with continuous playback functionality.
 ## Demo
 ### With Open AI API and Prompt Engineer
-<video width="100%" controls>
-  <source src="./demo.mp4" type="video/mp4">
-</video>
+![demo-gif](./demo-gif.gif)
 ## Features
 
 - **Audio Recording**: Record audio in segments of approximately 2 seconds each
