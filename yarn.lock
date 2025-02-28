@@ -3056,7 +3056,7 @@ dotenv-expand@~11.0.6:
   dependencies:
     dotenv "^16.4.5"
 
-dotenv@^16.4.5, dotenv@~16.4.5:
+dotenv@^16.4.5, dotenv@^16.4.7, dotenv@~16.4.5:
   version "16.4.7"
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.4.7.tgz#0e20c5b82950140aa99be360a8a5f52335f53c26"
   integrity sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==
@@ -3308,7 +3308,7 @@ expo-blur@~14.0.3:
   resolved "https://registry.yarnpkg.com/expo-blur/-/expo-blur-14.0.3.tgz#656d6b2442bfbbfb2a6608c6bc1151b29bce6698"
   integrity sha512-BL3xnqBJbYm3Hg9t/HjNjdeY7N/q8eK5tsLYxswWG1yElISWZmMvrXYekl7XaVCPfyFyz8vQeaxd7q74ZY3Wrw==
 
-expo-constants@~17.0.5, expo-constants@~17.0.7:
+expo-constants@^17.0.7, expo-constants@~17.0.5, expo-constants@~17.0.7:
   version "17.0.7"
   resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-17.0.7.tgz#630d42ec7d142065aeb75958becb9a27e0907d24"
   integrity sha512-sp5NUiV17I3JblVPIBDgoxgt7JIZS30vcyydCYHxsEoo+aKaeRYXxGYilCvb9lgI6BBwSL24sQ6ZjWsCWoF1VA==

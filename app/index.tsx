@@ -8,9 +8,6 @@ import {
   Text,
   ViewStyle,
   TextStyle,
-  Alert,
-  FlatList,
-  TextInput,
   Platform,
 } from "react-native";
 import { useAppStore, RecordingSegment } from "@/src/store/appStore";
@@ -18,8 +15,9 @@ import { Audio } from "expo-av";
 import { getOpenAIService } from "@/src/services/openaiService";
 import * as FileSystem from "expo-file-system";
 import uuid from "react-native-uuid";
+import Constants from 'expo-constants';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = Constants.expoConfig?.extra?.openaiApiKey;
 interface Styles {
   container: ViewStyle;
   content: ViewStyle;
@@ -297,6 +295,8 @@ export default function Index() {
 
   // Handle record button press
   const handleRecord = () => {
+    // router.push('/record')
+    // return;
     if (isRecording) {
       stopRecording();
     } else {
@@ -344,7 +344,7 @@ export default function Index() {
           </View>
         ) : (
           <View style={styles.instructions}>
-              <Text style={styles.instructionText}>Tap to record</Text>
+              {/* <Text style={styles.instructionText}>Tap to record</Text> */}
           </View>
         )}
       </View>
@@ -359,13 +359,12 @@ export default function Index() {
             color="white"
           />
         </TouchableOpacity>
-        {/* <Text style={styles.instructions}>
+        <Text style={styles.instructions}>
           {isRecording ? "Tap to stop recording" : "Tap to start recording"}
-        </Text> */}
+        </Text>
         {/* <Text style={styles.title}>
           Recording Segments: {recordingSegments.length}
         </Text> */}
-        {/* Real-time transcription display */}
       </View>
     </View>
   );
@@ -381,7 +380,7 @@ const styles = StyleSheet.create<Styles>({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 30,
   },
   title: {
     fontSize: 18,
@@ -444,7 +443,7 @@ const styles = StyleSheet.create<Styles>({
     fontSize: 56,
     fontWeight: "bold",
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 40,
     marginBottom: 20,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
   },

@@ -194,7 +194,7 @@ const PlayBackBar: React.FC<PlayBackBarProps> = ({
 
 const styles = StyleSheet.create({
   playbackBar: {
-    marginTop: 50,
+    marginTop: 20,
     backgroundColor: "#fff",
     borderRadius: 10,
     padding: 15,
@@ -204,11 +204,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    display: "flex",
+    flexDirection: "row-reverse",
+    justifyContent: "flex-start",
+    gap: 5,
   },
   timeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    width: "85%",
   },
   timeText: {
     fontSize: 12,

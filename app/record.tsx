@@ -376,25 +376,9 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {/* Playback Bar */}
-        <PlayBackBar
-          currentPosition={currentPosition}
-          totalDuration={totalDuration}
-          isPlaying={isPlaying}
-          isLoading={isLoading}
-          progressAnimation={progressAnimation}
-          sound={sound}
-          setIsPlaying={setIsPlaying}
-          setCurrentPosition={setCurrentPosition}
-          positionUpdateInterval={positionUpdateInterval}
-          seekToPosition={(position) => seekToPosition(position)}
-          playAllSegments={playAllSegments}
-        />
-
-        {/* Recording Segments List */}
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={{ paddingBottom: 20, marginTop: 20 }}
+          contentContainerStyle={{ paddingBottom: 10, marginTop: 20 }}
         >
           {recordingSegments.map((segment, index) => (
             <TouchableOpacity
@@ -417,9 +401,19 @@ export default function Index() {
           ))}
         </ScrollView>
       </View>
-      <TouchableOpacity style={styles.goToMainButton} onPress={goToMain}>
-        <Text style={styles.goToMainText}>Go to main</Text>
-      </TouchableOpacity>
+      <PlayBackBar
+        currentPosition={currentPosition}
+        totalDuration={totalDuration}
+        isPlaying={isPlaying}
+        isLoading={isLoading}
+        progressAnimation={progressAnimation}
+        sound={sound}
+        setIsPlaying={setIsPlaying}
+        setCurrentPosition={setCurrentPosition}
+        positionUpdateInterval={positionUpdateInterval}
+        seekToPosition={(position) => seekToPosition(position)}
+        playAllSegments={playAllSegments}
+      />
     </View>
   );
 }
@@ -461,12 +455,14 @@ const styles = StyleSheet.create<Styles>({
     flex: 1,
   },
   goToMainButton: {
-    backgroundColor: "#007AFF",
     padding: 15,
     borderRadius: 8,
-    alignItems: "center",
-    marginTop: 0,
-    marginBottom: 10, 
+    marginTop: 30,
+    marginBottom: 10,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems:'center',
+    justifyContent: 'space-between'
   },
   goToMainText: {
     color: "#fff",
