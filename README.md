@@ -1,7 +1,11 @@
 # Multilingual Record App
 
 A React Native mobile application for recording, transcribing, and playing back multilingual audio segments with continuous playback functionality.
-
+## Demo
+### With Open AI API and Prompt Engineer
+<video width="100%" controls>
+  <source src="./demo.mp4" type="video/mp4">
+</video>
 ## Features
 
 - **Audio Recording**: Record audio in segments of approximately 2 seconds each
@@ -22,7 +26,7 @@ A React Native mobile application for recording, transcribing, and playing back 
 
 1. Create a `.env` file in the root directory with the following content:
    ```
-   EXPO_PUBLIC_OPENAI_API_KEY=your_openai_api_key_here
+   OPENAI_API_KEY=your_openai_api_key_here
    ```
 
 2. Replace `your_openai_api_key_here` with your actual OpenAI API key.

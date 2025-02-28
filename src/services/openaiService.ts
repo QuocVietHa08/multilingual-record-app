@@ -44,6 +44,9 @@ export class OpenAIService {
       
       formData.append('model', 'whisper-1');
       formData.append('response_format', 'json');
+      // Add prompt to customize transcription behavior
+  formData.append('prompt', 'Transcribe the voice to Vietnamese or English depending on the language detected.');
+
       
       console.log('FormData prepared, sending to OpenAI API');
       
