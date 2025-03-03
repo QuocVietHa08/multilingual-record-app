@@ -16,6 +16,7 @@ import { getOpenAIService } from "@/src/services/openaiService";
 import * as FileSystem from "expo-file-system";
 import uuid from "react-native-uuid";
 import Constants from 'expo-constants';
+import WaitingForTranscript from "@/src/components/home/WaitingForTranscript";
 
 const OPENAI_API_KEY = Constants.expoConfig?.extra?.openaiApiKey;
 interface Styles {
@@ -324,8 +325,6 @@ export default function Index() {
     };
   }, []);
 
-  console.log("recordingSegments:", recordingSegments);
-
   return (
     <View style={styles.container}>
       <Text
@@ -338,12 +337,13 @@ export default function Index() {
           <View style={styles.translationContainer}>
             <Text style={styles.translationText}>
               {!stringTranslate
-                ? "Recording and transcribing..."
+                ? <WaitingForTranscript />
                 : stringTranslate}
             </Text>
           </View>
         ) : (
           <View style={styles.instructions}>
+            {/* <WaitingForTranscript /> */}
               {/* <Text style={styles.instructionText}>Tap to record</Text> */}
           </View>
         )}

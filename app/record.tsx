@@ -163,7 +163,7 @@ export default function Index() {
   }, [recordingSegments]);
 
   // Manual implementation of continuous playback
-  const playAllSegments = async () => {
+  const playAllSegments = async (startIndex?: number) => {
     if (isLoading || recordingSegments.length === 0) {
       console.log("Cannot play: loading or no segments");
       return;
@@ -171,9 +171,11 @@ export default function Index() {
 
     try {
       // Start with the active segment
-      const currentSegmentId = recordingSegments[activeSegmentIndex].id;
+      // Use the provided startIndex if available, otherwise use activeSegmentIndex
+      const segmentIndex = startIndex !== undefined ? startIndex : activeSegmentIndex;
+      const currentSegmentId = recordingSegments[segmentIndex].id;
       const currentSound = soundsRef.current[currentSegmentId];
-      console.log("current sound--->", currentSound);
+      // console.log("current sound--->", currentSound);
 
       if (!currentSound) {
         console.error("Current sound not found in preloaded sounds");
@@ -192,11 +194,13 @@ export default function Index() {
         clearInterval(positionUpdateInterval.current);
       }
 
-      let currentSegmentIndex = activeSegmentIndex;
+      console.log('active segment index', segmentIndex)
+      let currentSegmentIndex = segmentIndex;
       let overallPosition = currentSegmentIndex * 2; // Start from the current segment
       const segmentDuration = 2; // Estimated duration per segment in seconds
 
       positionUpdateInterval.current = setInterval(async () => {
+        console.log('checking for', currentSegmentIndex)
         try {
           const currentSegmentId = recordingSegments[currentSegmentIndex].id;
           const currentSound = soundsRef.current[currentSegmentId];
@@ -240,17 +244,6 @@ export default function Index() {
             }
           }
 
-          console.log(
-            "condition to play new segment",
-            status.didJustFinish || segmentPosition >= segmentDuration
-          );
-          console.log("status--->", status);
-          console.log("segment positon :", segmentPosition, segmentDuration);
-          console.log(
-            "current segment index",
-            currentSegmentIndex,
-            recordingSegments.length
-          );
 
           if (currentSegmentIndex == recordingSegments.length - 1) {
             clearInterval(positionUpdateInterval.current!);
@@ -294,12 +287,20 @@ export default function Index() {
   };
 
   const seekToPosition = async (position: number) => {
+    console.log('seeking to position---->:', position);
     if (isLoading || recordingSegments.length === 0) return;
 
     try {
+      // stop the sound
+      if (sound) {
+        setIsPlaying(false);
+        await sound.stopAsync();
+      }
+
       // Ensure position is within bounds
       const clampedPosition = Math.max(0, Math.min(position, totalDuration));
-
+      
+      console.log('clamped position', clampedPosition)
       // Update UI immediately for better responsiveness
       setCurrentPosition(clampedPosition);
       progressAnimation.value = clampedPosition / totalDuration;
@@ -310,23 +311,21 @@ export default function Index() {
         Math.floor(clampedPosition / segmentDuration),
         recordingSegments.length - 1
       );
-
+      console.log('tartget segmentt inde', targetSegmentIndex)
       setActiveSegmentIndex(targetSegmentIndex);
 
-      // Stop current playback and interval
+      // Stop current playback and interval immediately
       if (positionUpdateInterval.current) {
         clearInterval(positionUpdateInterval.current);
         positionUpdateInterval.current = null;
       }
 
-      // Pause current sound if playing
+      // Stop current sound completely (not just pause)
       const wasPlaying = isPlaying;
-      if (isPlaying) {
-        setIsPlaying(false);
-        if (sound) {
-          await sound.pauseAsync();
-        }
-      }
+      // if (sound) {
+      //   setIsPlaying(false);
+      //   await sound.stopAsync();
+      // }
 
       // Get the target sound from our preloaded sounds
       const targetSegmentId = recordingSegments[targetSegmentIndex].id;
@@ -337,17 +336,23 @@ export default function Index() {
         return;
       }
 
+      // Set the new sound as the current sound
       setSound(targetSound);
 
       // Calculate position within the segment
       const segmentPosition = clampedPosition % segmentDuration;
       await targetSound.setPositionAsync(segmentPosition * 1000);
 
-      // If we were playing, start playback again
+      // If we were playing, start playback again with the new sound
       if (wasPlaying) {
         await targetSound.playAsync();
         setIsPlaying(true);
-        playAllSegments(); // Restart the continuous playback from this position
+        
+        // Start a new playback sequence from this position
+        // We need to create a new interval to handle continuous playback
+        setTimeout(() => {
+          playAllSegments(targetSegmentIndex);
+        }, 100)
       }
     } catch (error) {
       console.error("Error seeking:", error);
